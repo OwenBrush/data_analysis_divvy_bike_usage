@@ -1,62 +1,73 @@
 SAVE_DIR = 'data/'
 SERVER = 'https://divvy-tripdata.s3.amazonaws.com/'
 FILE_NAME = '-divvy-tripdata'
+DELAY = 5
 
 from zipfile import ZipFile
 import os
 import requests
 from io import BytesIO
 import time
+from IPython.display import clear_output
+
+from urllib3 import Retry
 
 
-def download_data(save_dir:str=SAVE_DIR, years:list=[2020,2021,2022], start_month:int=6, end_month:int=5, retries = 3) -> None:
+def download_data(save_dir:str=SAVE_DIR, start_date:int=202006, n_months=24, retries = 3) -> None:
     """
     Checks save directory for apropriate csv files and if they are not present, downloads them.
-    """
-    
-    def downloand_and_extract(file, delay=3):
-        print(f'Downloading {file+".csv"}')
-        response = requests.get(SERVER+file+'.zip', stream=True)
-        if response:
+    """ 
+    def _downloand_and_extract(file, delay=DELAY):
+        try:
+            response = requests.get(SERVER+file+'.zip', stream=True)
             zip = ZipFile(BytesIO(response.content))
             zip.extractall(path=SAVE_DIR)
-        else:
-            print(f'Did not find"{file+".zip"}" at {SERVER}')
+        except requests.exceptions.RequestException as e: 
+            raise e
         time.sleep(delay)
 
-    month = start_month
-    failed_attemps = []
-
-
-
-    for y in years:
-
-        if y == years[-1]:
-            year_end = end_month
-        else:
-            year_end = 12
-            
-        while month < year_end+1:
-            file = str(y)+str(month).zfill(2)+FILE_NAME
+    def _download_all(date) -> list:
+        failed_attempts = []
+        for i in range(0,n_months):
+            month = (int(str(date)[-2:]) +i) 
+            year = int(str(date)[:4]) + int((month-1) / 12)
+            iter_date = str(year) + str((month-1) % 12 + 1).zfill(2)
+            file = str(iter_date)+FILE_NAME
             if not os.path.exists(SAVE_DIR+file+'.csv'):
+                print(f'{i+1}/{n_months} : Downloading {file+".csv"}')
                 try:
-                    downloand_and_extract(file)
+                    _downloand_and_extract(file)
                 except:
+                    failed_attempts.append(file)
                     print(f'Failed to download {SERVER+file+".zip"}')
-                    failed_attemps.append(file)
-            month += 1
-        month = 1
+                    time.sleep(DELAY)
+                clear_output(wait=True)
 
-    for file in failed_attemps:
-        for i in range(0,retries):
-            if not os.path.exists(SAVE_DIR+file+'.csv'):
-                try:
-                    print(f'Re-attemping to download {SERVER+file+".zip"}')
-                    downloand_and_extract(file, delay=10)
-                except:
-                    failed_attemps.append(file)
-                if i == retries-1:
-                    print(f'DID NOT SUCCEED IN DOWNLOADING {SERVER+file+".zip"}')
+        return failed_attempts
+
+    def _retry_failed_downloads(files:list) -> list:
+        for file in files.copy():
+            for i in range (0, retries):
+                if not os.path.exists(SAVE_DIR+file+'.csv'):
+                    try:
+                        print(f'Re-attemping to download {SERVER+file+".zip"}, attempt #{i+1}')
+                        _downloand_and_extract(file, delay=DELAY*2)
+                        files.remove(file)
+                    except:
+                        pass
+        return files
+            
+    failed_attempts = _download_all(start_date)
+    failed_attempts = _retry_failed_downloads(failed_attempts)
+
+    clear_output(wait=True)
+    if len(failed_attempts) == 0:
+        print('All files downloaded successfully')
+    else:
+        print(f'Unable to download: {failed_attempts}') 
+
+
+
 
             
 
