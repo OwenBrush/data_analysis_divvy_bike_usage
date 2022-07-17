@@ -9,14 +9,16 @@ import requests
 from io import BytesIO
 import time
 from IPython.display import clear_output
-
-from urllib3 import Retry
+import glob
+import pandas as pd
 
 
 def download_data(save_dir:str=SAVE_DIR, start_date:int=202006, n_months=24, retries = 3) -> None:
     """
     Checks save directory for apropriate csv files and if they are not present, downloads them.
     """ 
+    ### TODO: add Covid Data: https://data.cityofchicago.org/api/views/naz8-j4nc/rows.csv?accessType=DOWNLOAD
+
     def _downloand_and_extract(file, delay=DELAY):
         try:
             response = requests.get(SERVER+file+'.zip', stream=True)
@@ -66,6 +68,13 @@ def download_data(save_dir:str=SAVE_DIR, start_date:int=202006, n_months=24, ret
     else:
         print(f'Unable to download: {failed_attempts}') 
 
+
+def assemble_data_frame(save_dir:str=SAVE_DIR) -> pd.DataFrame:
+    """
+    Returns DataFrame containing all csv files in given directory"""
+    files = glob.glob(save_dir + '/*.csv')
+    files.sort()
+    return pd.concat(map(pd.read_csv, files), ignore_index=True)
 
 
 
