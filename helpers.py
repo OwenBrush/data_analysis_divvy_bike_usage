@@ -11,8 +11,8 @@ import pandas as pd
 from datetime import datetime
 from meteostat import Point, Daily
 
-START_DATE = datetime(2020, 6, 1)
-END_DATE = datetime(2022, 5, 31)
+START_DATE = datetime(2020, 4, 1)
+END_DATE = datetime(2022, 3, 31)
 CHICAGO = Point(41.881832, -87.62317, 182)
 BIKE_SAVE = 'data/bike/'
 COVID_SAVE = 'data/covid/covid_data.csv'
