@@ -1,6 +1,6 @@
 # Visualization of Chicago Bike Share During Covid
 
-## View the interactive Tableau dashboard here: 
+### View the interactive Tableau dashboard here: 
 https://public.tableau.com/app/profile/owen6164/viz/DivvyBIkeShareAnalysis/Main?publish=yes
 
 <br></br>
